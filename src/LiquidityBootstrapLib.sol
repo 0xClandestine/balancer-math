@@ -26,10 +26,8 @@ library LiquidityBootstrapLib {
         //         ⎝    n    ⎠
         // -----------------------------------------------------------------------
 
-        if (i > n) i = n;
-
         return x > y
             ? x.rawSub(x.rawSub(y).mulDiv(i, n))
-            : x.rawAdd(y.rawSub(x).mulDiv(i, n));
+            : x + y.rawSub(x).mulDiv(i.min(n), n);
     }
 }
