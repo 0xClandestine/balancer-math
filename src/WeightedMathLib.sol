@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "lib/solady/src/utils/FixedPointMathLib.sol";
-import "lib/SafeCastLib.sol";
+import "lib/solady/src/utils/SafeCastLib.sol";
 
 library WeightedMathLib {
     /// -----------------------------------------------------------------------
@@ -10,28 +10,41 @@ library WeightedMathLib {
     /// -----------------------------------------------------------------------
 
     using SafeCastLib for *;
+
     using FixedPointMathLib for *;
 
     /// -----------------------------------------------------------------------
     /// Errors
     /// -----------------------------------------------------------------------
 
-    error ZeroInvariant();
+    /// @dev Thrown when `amountIn` exceeds `MAX_PERCENTAGE_IN`, which is imposed by balancer.
     error AmountInTooLarge();
+
+    /// @dev Thrown when `amountOut` exceeds `MAX_PERCENTAGE_OUT`, which is imposed by balancer.
     error AmountOutTooLarge();
 
     /// -----------------------------------------------------------------------
     /// Constants
     /// -----------------------------------------------------------------------
 
-    uint256 internal constant MAX_POW_RELATIVE_ERROR = 10000; // 10^(-14)
+    /// @dev Maximum relative error allowed for fixed-point math operations (10^(-14)).
+    uint256 internal constant MAX_POW_RELATIVE_ERROR = 10000;
+
+    /// @dev Maximum percentage of reserveIn allowed to be swapped in when using `getAmountOut` (30%).
     uint256 internal constant MAX_PERCENTAGE_IN = 0.3 ether;
+
+    /// @dev Maximum percentage of reserveOut allowed to be swapped out when using `getAmountIn` (30%).
     uint256 internal constant MAX_PERCENTAGE_OUT = 0.3 ether;
 
     /// -----------------------------------------------------------------------
     ///  Weighted Arithmetic
     /// -----------------------------------------------------------------------
 
+    /// @notice Calculate the spot price given reserves and weights of two assets in a pool.
+    /// @param reserveIn The reserve of the input asset in the pool.
+    /// @param reserveOut The reserve of the output asset in the pool.
+    /// @param weightIn The weight of the input asset in the pool.
+    /// @param weightOut The weight of the output asset in the pool.
     function getSpotPrice(
         uint256 reserveIn,
         uint256 reserveOut,
@@ -45,6 +58,9 @@ library WeightedMathLib {
         return reserveIn.divWad(weightIn).divWad(reserveOut.divWad(weightOut));
     }
 
+    /// @notice Calculate the invariant of a weighted pool given reserves and weights of the assets.
+    /// @param reserves An array of reserves for all the assets in the pool.
+    /// @param weights An array of weights for all the assets in the pool.
     function getInvariant(uint256[] memory reserves, uint256[] memory weights)
         internal
         pure
@@ -59,15 +75,21 @@ library WeightedMathLib {
 
         invariant = 1e18;
 
-        for (uint256 i; i < weights.length; i = i.rawAdd(1)) {
+        uint256 n = weights.length;
+
+        for (uint256 i; i < n; i = i.rawAdd(1)) {
             invariant = invariant.mulWad(
                 int256(reserves[i]).powWad(int256(weights[i])).toUint256()
             );
         }
-
-        if (invariant == 0) revert ZeroInvariant();
     }
 
+    /// @notice Calculate the invariant of a weighted pool given two reserves and weights.
+    /// @dev Optimized for pools that contain exactly two assets.
+    /// @param reserveIn The reserve of the input asset in the pool.
+    /// @param reserveOut The reserve of the output asset in the pool.
+    /// @param weightIn The weight of the input asset in the pool.
+    /// @param weightOut The weight of the output asset in the pool.
     function getInvariant(
         uint256 reserveIn,
         uint256 reserveOut,
@@ -84,10 +106,14 @@ library WeightedMathLib {
         invariant = 1e18.mulWad(powWad(reserveIn, weightIn)).mulWad(
             powWad(reserveOut, weightOut)
         );
-
-        if (invariant == 0) revert ZeroInvariant();
     }
 
+    /// @notice Calculate the amount of input asset required to get a specific amount of output asset from the pool.
+    /// @param amountOut The desired amount of output asset.
+    /// @param reserveIn The reserve of the input asset in the pool.
+    /// @param reserveOut The reserve of the output asset in the pool.
+    /// @param weightIn The weight of the input asset in the pool.
+    /// @param weightOut The weight of the output asset in the pool.
     function getAmountIn(
         uint256 amountOut,
         uint256 reserveIn,
@@ -121,6 +147,12 @@ library WeightedMathLib {
         }
     }
 
+    /// @notice Calculate the amount of output asset received by providing a specific amount of input asset to the pool.
+    /// @param amountIn The amount of input asset provided.
+    /// @param reserveIn The reserve of the input asset in the pool.
+    /// @param reserveOut The reserve of the output asset in the pool.
+    /// @param weightIn The weight of the input asset in the pool.
+    /// @param weightOut The weight of the output asset in the pool.
     function getAmountOut(
         uint256 amountIn,
         uint256 reserveIn,
@@ -144,7 +176,7 @@ library WeightedMathLib {
         }
 
         return reserveOut.mulWad(
-            complement(
+            1e18.rawSub(
                 powWadUp(
                     reserveIn.divWadUp(reserveIn + amountIn),
                     weightIn.divWad(weightOut)
@@ -181,12 +213,7 @@ library WeightedMathLib {
         }
 
         uint256 power = int256(x).powWad(int256(y)).toUint256();
-        return power + power.mulWadUp(MAX_POW_RELATIVE_ERROR) + 1;
-    }
 
-    function complement(uint256 x) internal pure returns (uint256 result) {
-        assembly {
-            result := mul(lt(x, 0xde0b6b3a7640000), sub(0xde0b6b3a7640000, x))
-        }
+        return power + power.mulWadUp(MAX_POW_RELATIVE_ERROR) + 1;
     }
 }
