@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "lib/solplot/src/Plot.sol";
 
 import "src/WeightedMathLib.sol";
-import "src/LiquidityBootstrapLib.sol";
 
 contract WeightedMathLibPlot is Plot {
     /// -----------------------------------------------------------------------
@@ -29,7 +28,7 @@ contract WeightedMathLibPlot is Plot {
 
         unchecked {
             for (uint256 index = 0; index < length; index++) {
-                uint256 weightIn = LiquidityBootstrapLib.linearInterpolation(
+                uint256 weightIn = WeightedMathLib.linearInterpolation(
                     weightInStarting, weightInEnding, index, length
                 );
                 uint256 weightOut = 1e18 - weightIn;
