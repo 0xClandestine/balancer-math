@@ -198,8 +198,8 @@ library WeightedMathLib {
         // -----------------------------------------------------------------------
 
         return x > y
-            ? x.rawSub(x.rawSub(y).mulDiv(i, n))
-            : x + y.rawSub(x).mulDiv(i.min(n), n);
+            ? x.rawSub(x.rawSub(y).mulDiv(i.min(n), n))
+            : x.rawAdd(y.rawSub(x).mulDiv(i.min(n), n));
     }
 
     /// -----------------------------------------------------------------------
