@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "lib/solady/src/utils/FixedPointMathLib.sol";
-import "lib/solady/src/utils/SafeCastLib.sol";
+import "solady/src/utils/FixedPointMathLib.sol";
+import "solady/src/utils/SafeCastLib.sol";
 
 library WeightedMathLib {
     /// -----------------------------------------------------------------------
